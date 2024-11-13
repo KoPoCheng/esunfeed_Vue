@@ -1,36 +1,40 @@
 <template>
     <div id="app">
-    <div class="post-form">
-        <h1 class="title">Esunfeed</h1>
-        <h2 class="topic">發文</h2>
-        <textarea v-model="postContent" placeholder="寫下你的心情..."></textarea>
-        <input class="image-input" type="file" @change="handleImageUpload" />
-        <!-- Preview Image -->
-        <img v-if="imagePreview" :src="imagePreview" alt="Image preview" class="image-preview" />
-        <button @click="submitPost">送出發文</button>
-    </div>
-    <div class="post-list">
-        <div v-for="post in posts" :key="post.postId" class="post-item">
-            <p class="post-content">{{ post.content }}</p>
-            <small>{{ post.createdAt }}</small>
-            <img v-if="post.image" :src="post.image" alt="Post image" />
-            
-            <!-- 留言區域 -->
-            <div class="comments">
-                <button @click="toggleComments(post.postId)">查看留言</button>
-                <div v-if="post.showComments">
-                    <ul>
-                        <li class="comment-item" v-for="comment in post.comments" :key="comment.id">{{ comment.content }}</li>
-                    </ul>
-                    <textarea v-model="post.newCommentContent" placeholder="新增留言..."></textarea>
-                    <button @click="submitComment(post.postId)">送出留言</button>
+        <div class="post-form">
+            <h1 class="title">Esunfeed</h1>
+            <h2 class="topic">發文</h2>
+            <textarea v-model="postContent" placeholder="寫下你的心情..."></textarea>
+            <input class="image-input" type="file" @change="handleImageUpload" />
+            <!-- Preview Image -->
+            <img v-if="imagePreview" :src="imagePreview" alt="Image preview" class="image-preview" />
+            <button @click="submitPost">送出發文</button>
+        </div>
+
+        <div class="post-list">
+            <div v-for="post in posts" :key="post.postId" class="post-item">
+                <div class="post-header">
+                    <p class="post-content">{{ post.content }}</p>
+                    <button @click="deletePost(post.postId)" class="delete-button">刪除</button>
+                </div>
+                <small>{{ post.createdAt }}</small>
+                <img v-if="post.image" :src="post.image" alt="Post image" />
+                
+                <!-- 留言區域 -->
+                <div class="comments">
+                    <button @click="toggleComments(post.postId)">查看留言</button>
+                    <div v-if="post.showComments">
+                        <ul>
+                            <li class="comment-item" v-for="comment in post.comments" :key="comment.id">{{ comment.content }}</li>
+                        </ul>
+                        <textarea v-model="post.newCommentContent" placeholder="新增留言..."></textarea>
+                        <button @click="submitComment(post.postId)">送出留言</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-
 </template>
+
 
 <script lang="ts">
 import axios, { AxiosError } from 'axios';
@@ -199,9 +203,28 @@ async submitComment(postId: number) {
         console.error('Failed to post comment', axiosError);
         alert(`Failed to post comment. Please try again later.\nError: ${axiosError.message}`);
     }
-}
-
-
+},
+deletePost(postId: number) {
+            const apiUrl = `http://localhost:8080/api/v1/user/post/${postId}/delete`;
+            fetch(apiUrl, {
+                method: "DELETE",
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    "Content-Type": "application/json"
+                },
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Remove the post from the local list
+                    this.posts = this.posts.filter(post => post.postId !== postId);
+                } else {
+                    console.error("Failed to delete post");
+                }
+            })
+            .catch(error => {
+                console.error("Error deleting post:", error);
+            });
+        },
     }
 });
 
@@ -288,4 +311,22 @@ button {
     max-width: 100%;
     margin-top: 10px;
 }
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.delete-button {
+    background-color: red;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.delete-button:hover {
+    background-color: darkred;
+}
+
 </style>
