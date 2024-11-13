@@ -1,4 +1,3 @@
-
 <template>
   <div>
     <div :class="$style.register_container">
@@ -67,17 +66,22 @@
             />
           </div>
         </div>
+        <button type="submit" :class="$style.rbt">註冊</button>
+        <RegisterSuccessModal v-if="showSuccessModal" message="註冊成功，請前往登入" @close="showSuccessModal = false" />
       </form>
-      <button type="submit" :class="$style.rbt" @click="handleSubmit">註冊</button>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive } from "vue";
+import {ref, reactive } from "vue";
 import axios from "axios";
+import RegisterSuccessModal from "./RegisterSuccessComp.vue";
 
-export default defineComponent({
+export default{
+  components: {
+    RegisterSuccessModal
+  },
   setup(props, { emit }) {
     const formData = reactive({
       userEmail: "",
@@ -88,6 +92,8 @@ export default defineComponent({
     const emailError = ref("");
     const passwordError = ref("");
     const formError = ref("");
+    const showSuccessModal = ref(false);  // Add ref to control modal visibility
+    const successMessage = ref("");  // To store the success message
 
     const onClose = () => {
       emit("close");
@@ -151,9 +157,18 @@ export default defineComponent({
           }
         );
         console.log("Form submitted successfully", response.data);
+        //alert("註冊成功！");
+        // On success, display the modal
+        successMessage.value = "註冊成功！";
+        showSuccessModal.value = true;
+
+        // Hide the modal after 3 seconds
+        setTimeout(() => {
+          showSuccessModal.value = false;
+          onClose();
+        }, 3000);
       } catch (error: unknown) {
         if (axios.isAxiosError(error)) {
-          // Handle Axios-specific error
           if (error.response?.data?.message === "電子郵件已被註冊") {
             emailError.value = "電子郵件已被註冊";
           } else {
@@ -161,7 +176,6 @@ export default defineComponent({
             formError.value = "註冊失敗，請稍後再試";
           }
         } else {
-          // Handle non-Axios errors
           console.error("An unexpected error occurred", error);
           formError.value = "註冊失敗，請稍後再試";
         }
@@ -173,14 +187,18 @@ export default defineComponent({
       emailError,
       passwordError,
       formError,
+      showSuccessModal,
+      successMessage,
       checkEmail,
       validatePassword,
       handleSubmit,
       onClose,
     };
   },
-});
+}
 </script>
+
+
 
   <style module>
   .register_container {
@@ -263,5 +281,20 @@ export default defineComponent({
     margin-bottom: 0;
 
   }
+  .rbt {
+    position: relative;
+    margin-top: 20px;
+    background-color: #86C573;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20%;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
   </style>
   
