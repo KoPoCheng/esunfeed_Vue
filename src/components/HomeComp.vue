@@ -1,34 +1,55 @@
 <template>
     <div id="app">
-        <div class="post-form">
-            <h1 class="title">Esunfeed</h1>
-            <h2 class="topic">發文</h2>
-            <textarea v-model="postContent" placeholder="寫下你的心情..."></textarea>
-            <input class="image-input" type="file" @change="handleImageUpload" />
-            <!-- Preview Image -->
-            <img v-if="imagePreview" :src="imagePreview" alt="Image preview" class="image-preview" />
-            <button @click="submitPost">送出發文</button>
-        </div>
-        <div class="post-list">
-            <div v-for="post in posts" :key="post.id" class="post-item">
-                <p class="post-content">{{ post.content }}</p>
-                <small>{{ post.createdAt }}</small>
-                <img v-if="post.image" :src="post.image" alt="Post image" />
+    <div class="post-form">
+        <h1 class="title">Esunfeed</h1>
+        <h2 class="topic">發文</h2>
+        <textarea v-model="postContent" placeholder="寫下你的心情..."></textarea>
+        <input class="image-input" type="file" @change="handleImageUpload" />
+        <!-- Preview Image -->
+        <img v-if="imagePreview" :src="imagePreview" alt="Image preview" class="image-preview" />
+        <button @click="submitPost">送出發文</button>
+    </div>
+    <div class="post-list">
+        <div v-for="post in posts" :key="post.postId" class="post-item">
+            <p class="post-content">{{ post.content }}</p>
+            <small>{{ post.createdAt }}</small>
+            <img v-if="post.image" :src="post.image" alt="Post image" />
+            
+            <!-- 留言區域 -->
+            <div class="comments">
+                <button @click="toggleComments(post.postId)">查看留言</button>
+                <div v-if="post.showComments">
+                    <ul>
+                        <li class="comment-item" v-for="comment in post.comments" :key="comment.id">{{ comment.content }}</li>
+                    </ul>
+                    <textarea v-model="post.newCommentContent" placeholder="新增留言..."></textarea>
+                    <button @click="submitComment(post.postId)">送出留言</button>
+                </div>
             </div>
         </div>
     </div>
+</div>
+
 </template>
 
 <script lang="ts">
 import axios, { AxiosError } from 'axios';
 import { defineComponent } from 'vue';
-import Compressor from 'compressorjs'; // Import the compressor
 
-interface Post {
+interface CommentDTO {
     id: number;
     content: string;
     createdAt: string;
+}
+
+interface Post {
+    postId: number;
+    content: string;
+    createdAt: string;
     image?: string;
+    showComments: boolean;
+    comments: CommentDTO[];
+    newCommentContent: string;
 }
 
 export default defineComponent({
@@ -50,6 +71,22 @@ export default defineComponent({
         }
     },
     methods: {
+        // Method to handle image file selection
+        handleImageUpload(event: Event) {
+            const input = event.target as HTMLInputElement;
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                this.postImage = file;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    if (reader.result) {
+                        this.imagePreview = reader.result as string; // Store the base64 image preview
+                    }
+                };
+                reader.readAsDataURL(file); // Read the file as a base64 string
+            }
+        },
+
         async submitPost() {
             const createdAt = new Date().toISOString();
 
@@ -81,54 +118,95 @@ export default defineComponent({
             }
         },
 
-        handleImageUpload(event: Event) {
-        const target = event.target as HTMLInputElement;
-        const file = target.files?.[0];
-        if (file) {
-            this.postImage = file;
-            // Compress the image before converting to base64
-            new Compressor(file, {
-                quality: 0.7, // Set compression quality (0-1)
-                maxWidth: 800, // Maximum width of the image
-                maxHeight: 800, // Maximum height of the image
-                success: (compressedResult: Blob) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(compressedResult);
-                    reader.onload = () => {
-                        this.imagePreview = reader.result as string; // Set base64 string for preview
-                    };
-                    reader.onerror = (error) => {
-                        console.error('Image load error:', error);
-                        alert('圖片加載失敗，請重新選擇圖片');
-                    };
-                },
-                error: (err: Error) => {  // Specify the type of error as 'Error'
-                    console.error('Image compression failed:', err);
-                    alert('圖片壓縮失敗，請重新選擇圖片');
+        async fetchUserPosts() {
+        if (!this.userId) return;
+        try {
+            const response = await axios.get<Post[]>(`http://localhost:8080/api/v1/user/getuserpost/${this.userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`
                 }
             });
-            }
+
+            // Log the response to ensure postId is used correctly
+            console.log("Fetched posts:", response.data);
+            
+            this.posts = response.data.map(post => ({
+                ...post,
+                showComments: false,  // Hide comments initially
+                comments: [],
+                newCommentContent: ''
+            }));
+        } catch (error) {
+            const axiosError = error as AxiosError;
+            console.error("Failed to fetch posts", axiosError);
+            alert(`Failed to fetch posts. Please try again later.\nError: ${axiosError.message}`);
+        }
         },
 
-
-        async fetchUserPosts() {
-            if (!this.userId) return;
-            try {
-                const response = await axios.get<Post[]>(`http://localhost:8080/api/v1/user/getuserpost/${this.userId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${this.token}`
-                    }
-                });
-                this.posts = response.data;
-            } catch (error) {
-                const axiosError = error as AxiosError;
-                console.error("獲取發文失敗", axiosError);
-                alert(`獲取發文失敗，請稍後再試。\n錯誤訊息：${axiosError.message}\n狀態：${axiosError.response?.status || '無狀態'}\n回應：${axiosError.response?.data || '無回應資料'}`);
-            }
+        toggleComments(postId: number) {
+    const post = this.posts.find(post => post.postId === postId); // Use post.postId instead of post.id
+    if (post) {
+        post.showComments = !post.showComments;  // Toggle comment visibility
+        if (post.showComments && post.comments.length === 0) {
+            this.fetchComments(postId);  // Fetch comments if they are empty
         }
     }
+}
+,  
+
+
+async fetchComments(postId: number) {
+    console.log("Fetching comments for post ID:", postId);
+    try {
+        const response = await axios.get<CommentDTO[]>(`http://localhost:8080/api/v1/user/comments/post/${postId}`, {
+            headers: {
+                'Authorization': `Bearer ${this.token}`
+            }
+        });
+        const post = this.posts.find(post => post.postId === postId); // Use post.postId here
+        
+        if (post) {
+            post.comments = response.data;  // Update comments for the post
+        }
+    } catch (error) {
+        const axiosError = error as AxiosError;
+        console.error("Failed to fetch comments", axiosError);
+        alert(`Failed to fetch comments. Please try again later.\nError: ${axiosError.message}`);
+    }
+},
+
+async submitComment(postId: number) {
+    const post = this.posts.find(post => post.postId === postId); // Use post.postId here
+    if (!post || !post.newCommentContent) return;
+
+    const commentDTO = {
+        content: post.newCommentContent,
+        postId: postId,  // Pass postId from the argument
+        userId: this.userId
+    };
+
+    try {
+        const response = await axios.post<CommentDTO>('http://localhost:8080/api/v1/user/comments/create', commentDTO, {
+            headers: {
+                'Authorization': `Bearer ${this.token}`
+            }
+        });
+        console.log('Comment posted successfully', response.data);
+        post.newCommentContent = '';  // Clear the comment input
+        this.fetchComments(postId);  // Fetch updated comments
+    } catch (error) {
+        const axiosError = error as AxiosError;
+        console.error('Failed to post comment', axiosError);
+        alert(`Failed to post comment. Please try again later.\nError: ${axiosError.message}`);
+    }
+}
+
+
+    }
 });
+
 </script>
+
 
 <style>
 html, body {
@@ -144,6 +222,8 @@ html, body {
     font-family: Arial, sans-serif;
     display: block;
     top:10px;
+    width: 100%;
+    height: 100%;
 }
 .title {
     position: relative;
@@ -178,7 +258,9 @@ html, body {
     border-radius: 5px;
     padding: 20px;
 }
-
+.comment-item{
+    color:black;
+}
 textarea {
     width: 100%;
     min-height: 80px;
