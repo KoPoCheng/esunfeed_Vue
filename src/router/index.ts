@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '@/views/HomeView.vue';  // Assuming this is your private component
+import HomeView from '@/components/HomeComp.vue';  // Assuming this is your private component
 import LoginView from '@/views/LoginView.vue';  // Your login page if token is invalid
 
 // Function to extract username from token

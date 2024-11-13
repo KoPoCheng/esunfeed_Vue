@@ -130,7 +130,7 @@ html, body {
     position: absolute;
     background: white;
     display: flex;
-    left: 70%;
+    left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
     flex-direction: column;
@@ -195,6 +195,7 @@ html, body {
     background-color: #86C573;
     color: white;
     border: none;
+    margin-top: 20px;
     padding: 10px 20px;
     border-radius: 5px;
     cursor: pointer;
@@ -218,7 +219,7 @@ html, body {
 }
 .error_message {
     position: absolute;
-    top: 64%;
+    top: 70%;
     font-size: 14px;
     color: red;
 }

@@ -1,5 +1,6 @@
 <template>
     <div id="app">
+        <button @click="logout" class="logout-btn">登出</button>
         <div class="post-form">
             <h1 class="title">Esunfeed</h1>
             <h2 class="topic">發文</h2>
@@ -13,8 +14,18 @@
         <div class="post-list">
             <div v-for="post in posts" :key="post.postId" class="post-item">
                 <div class="post-header">
+                    <h3 class="post-user">{{ post.user.userName }}</h3>
                     <p class="post-content">{{ post.content }}</p>
-                    <button @click="deletePost(post.postId)" class="delete-button">刪除</button>
+                    <!-- Hamburger Menu for Edit and Delete -->
+                    <div class="hamburger-menu" @click="toggleMenu(post.postId)">
+                        <span class="menu-line"></span>
+                        <span class="menu-line"></span>
+                        <span class="menu-line"></span>
+                    </div>
+                    <div v-if="post.showMenu" class="menu-options">
+                        <button @click="editPost(post)">編輯</button>
+                        <button @click="deletePost(post.postId)">刪除</button>
+                    </div>
                 </div>
                 <small>{{ post.createdAt }}</small>
                 <img v-if="post.image" :src="post.image" alt="Post image" />
@@ -36,27 +47,34 @@
 </template>
 
 
+
+
 <script lang="ts">
 import axios, { AxiosError } from 'axios';
-import { defineComponent } from 'vue';
-
 interface CommentDTO {
     id: number;
     content: string;
     createdAt: string;
 }
+interface User {
+    userId: number;
+    userName: string;
+}
 
 interface Post {
     postId: number;
+    user:User;
+    userName: string;
     content: string;
     createdAt: string;
     image?: string;
     showComments: boolean;
     comments: CommentDTO[];
     newCommentContent: string;
+    showMenu: boolean;
 }
 
-export default defineComponent({
+export default {
     data() {
         return {
             userId: localStorage.getItem("userId") || '',
@@ -89,6 +107,12 @@ export default defineComponent({
                 };
                 reader.readAsDataURL(file); // Read the file as a base64 string
             }
+        },
+        logout() {
+            localStorage.clear();  // Clear all data from localStorage
+            alert('已登出！');
+            // Optionally redirect to login or home page
+            this.$router.push('/');
         },
 
         async submitPost() {
@@ -204,6 +228,40 @@ async submitComment(postId: number) {
         alert(`Failed to post comment. Please try again later.\nError: ${axiosError.message}`);
     }
 },
+    toggleMenu(postId : number) {
+                const post = this.posts.find(post => post.postId === postId);
+                if (post) {
+                    post.showMenu = !post.showMenu; // Toggle the visibility of the menu
+                }
+        },
+        editPost(post: Post) {
+            const updatedContent = prompt("編輯貼文內容", post.content);
+            if (updatedContent !== null) {
+                const updatedPostDTO = { content: updatedContent };
+
+                const apiUrl = `http://localhost:8080/api/v1/user/post/${post.postId}/editpost`;
+                fetch(apiUrl, {
+                    method: "PUT",
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(updatedPostDTO),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data) {
+                        post.content = data.content; // Update the content in the UI
+                        post.showMenu = false; // Hide the menu after editing
+                    } else {
+                        alert("更新失敗！");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error editing post:", error);
+                });
+            }
+        },
 deletePost(postId: number) {
             const apiUrl = `http://localhost:8080/api/v1/user/post/${postId}/delete`;
             fetch(apiUrl, {
@@ -225,8 +283,9 @@ deletePost(postId: number) {
                 console.error("Error deleting post:", error);
             });
         },
+
     }
-});
+}
 
 </script>
 
@@ -245,6 +304,7 @@ html, body {
     font-family: Arial, sans-serif;
     display: block;
     top:10px;
+    bottom: 10px;
     width: 100%;
     height: 100%;
 }
@@ -270,16 +330,20 @@ html, body {
 }
 .post-form{
     position: relative;
-    margin-bottom: 10px;
+    margin: 20px;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
     border-radius: 5px;
     padding: 20px;
 }
 .post-list {
     position: relative;
+    margin: 20px;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
     border-radius: 5px;
     padding: 20px;
+}
+.post-user{
+    color: #000;
 }
 .comment-item{
     color:black;
@@ -328,5 +392,62 @@ button {
 .delete-button:hover {
     background-color: darkred;
 }
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
 
+.hamburger-menu {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 20px;
+    height: 15px;
+}
+
+.menu-line {
+    background-color: black;
+    height: 3px;
+    width: 100%;
+}
+
+.menu-options {
+    position: absolute;
+    top:25px;
+    right: 0;
+    background-color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid #ddd;
+    padding: 10px;
+    z-index: 1;
+}
+
+.menu-options button {
+    display: block;
+    width: 100%;
+    padding: 5px;
+    margin: 5px 0;
+    background-color: #f0f0f0;
+    border: none;
+    cursor: pointer;
+}
+
+.menu-options button:hover {
+    background-color: #e0e0e0;
+}
+.logout-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 12px;
+    cursor: pointer;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    border-radius: 5px;
+}
 </style>
