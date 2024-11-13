@@ -66,7 +66,23 @@
     position: relative;
     width: 300px;
   }
-  
+  .modal_content p {
+    margin: 10px 0;
+    padding-top: 100px;
+    font-size: 20px;
+    color: black;
+    font-weight: bold;
+  }
+  .checkmark svg {
+    width: 30px;
+    height: 30px;
+    stroke: #fff;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    animation: checkmark-path-animation 0.5s ease-in-out;
+  }
   .checkmark {
     /* Styles for checkmark icon */
     position: absolute;
@@ -82,6 +98,33 @@
     justify-content: center;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     animation: checkmark-animation 0.5s ease-in-out;
+  }
+  @keyframes checkmark-path-animation {
+    0% {
+        stroke-dasharray: 80;
+        stroke-dashoffset: 80;
+    }
+
+    100% {
+        stroke-dasharray: 80;
+        stroke-dashoffset: 0;
+    }
+  }
+  @keyframes checkmark-animation {
+      0% {
+          transform: scale(0) translate(-50%, -50%) translateY(20px);
+          opacity: 0;
+      }
+
+      50% {
+          transform: scale(1.1) translate(-50%, -50%) translateY(0);
+          opacity: 1;
+      }
+
+      100% {
+          transform: scale(1) translate(-50%, -50%) translateY(0);
+          opacity: 1;
+      }
   }
   </style>
   

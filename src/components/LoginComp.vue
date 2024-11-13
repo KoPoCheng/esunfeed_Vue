@@ -1,12 +1,6 @@
 <template>
   <div :class="$style.container">
     <div :class="[$style.row, 'row']">
-      <div :class="$style.left_text">
-        <div :class="$style.left_logo"></div>
-        <div :class="[$style.left_text_content, 'left_text_content col-12 col-md-10']">
-          記錄生活的每一刻
-        </div>
-      </div>
       <div :class="[$style.login_container, 'col-12 col-md-6']">
         <form @submit.prevent="handleLogin">
           <input
@@ -73,20 +67,22 @@ export default {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email: this.email, password: this.password }),
+          body: JSON.stringify({ userEmail: this.email, userPassword: this.password }),
         });
         const data = await response.json();
 
         if (response.ok && data.status) {
           console.log("登入成功:", data);
           localStorage.setItem("token", data.token);
-          localStorage.setItem("role", data.user.role);
-
+          localStorage.setItem("role", data.user.userRole);
+          localStorage.setItem("userId", data.user.userId);
+          localStorage.setItem("userName", data.user.userName);
           this.showSuccessModal = true;
 
           // Delay navigation by 4 seconds
           setTimeout(() => {
-            if (data.user.role === "ADMIN") {
+            this.showSuccessModal = false; // Hide modal before navigation
+            if (data.user.userRole === "ADMIN") {
               console.log("Navigating to AdminPage...");
               this.$router.push("/admin");
             } else {
@@ -107,7 +103,13 @@ export default {
 </script>
 
 <style module>
-/* Your CSS styles (translated from login.module.css) */
+
+html, body {
+    background-color: #ffffff; /* Set background color to white */
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
 .container {
     position: relative;
     width: 100%;
@@ -189,7 +191,7 @@ export default {
     background-color: rgb(204, 203, 203);
 }
 
-rbt {
+.rbt {
     background-color: #86C573;
     color: white;
     border: none;
@@ -214,7 +216,12 @@ rbt {
     color: #0E3E39;
     font-weight: bold;
 }
-
+.error_message {
+    position: absolute;
+    top: 64%;
+    font-size: 14px;
+    color: red;
+}
 .left_text {
     position: absolute;
     /* 改為相對定位 */

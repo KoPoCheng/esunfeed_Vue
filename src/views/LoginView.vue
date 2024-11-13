@@ -15,11 +15,10 @@
     },
     setup() {
       const router = useRouter();
-  
-      // 在组件挂载时检查是否已经有 token
+      
       onMounted(() => {
-        const token = localStorage.getItem("token"); // 从 localStorage 中获取 token
-        const role = localStorage.getItem("role"); // 获取角色信息
+        const token = localStorage.getItem("token"); 
+        const role = localStorage.getItem("role"); 
         if (token) {
           if (role === "ADMIN") {
             router.push("/admin");
